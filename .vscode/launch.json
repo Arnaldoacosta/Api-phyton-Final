@@ -1,0 +1,31 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: 
+
+
+    "version": "0.2.0",
+    "configurations": [
+        
+
+        {
+            "name": "run-flask-app",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "C:\\Users\\arnal\\OneDrive\\Escritorio\\API IRSO HEROKU\\app.py",
+                "FLASK_ENV": "development",
+                "FLASK_DEBUG": "0",
+                "DATABASE_URL": "postgres://rmnyfgzfbjbygy:4843aa6bd5f1683b39b934750c6b4475b311e244179a3ca4033fff37896029c4@ec2-34-232-147-86.compute-1.amazonaws.com:5432/da384a5ispvhh0",         
+                "BBB": "ENV BBB"
+            },
+            "args": [
+                "run",
+                "--no-debugger",
+                "--no-reload"
+            ],
+            "jinja": true
+        },
+    ]
+}
