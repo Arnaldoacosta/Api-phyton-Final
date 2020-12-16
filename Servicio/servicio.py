@@ -9,6 +9,19 @@ from Servicio.Internal_errors import CodeInternalError
 from Servicio.global_variable import ADD_NEW,UPDATE
 
 
+Listamaterias = ['Administración de proyectos', 
+     'Algoritmo',
+     'Análisis y metodología de sistemas',
+     'Ética profesional', 
+     'Estadística',
+     'Estructura de datos',
+     'Introducción a la informática',
+     'Seguridad e integridad de sistemas',
+     'Sistemas administrativos',
+     'Taller de creactividad e innovación',
+     'Taller de prácticas de sistemas',
+     'Taller VI']
+
 def getNotamateriaToAlumnoIDbyNombreMateria(idalumno,argumentos):
     isvalidArgs(argumentos)
     nombremateria=argumentos.get("nombremateria")
@@ -19,7 +32,8 @@ def getNotamateriaToAlumnoIDbyNombreMateria(idalumno,argumentos):
             notamateria=NotaMateria.getNotamateriaToAlumnoIDbyNombreMateria(idalumno,nombremateria)
             cantidadRegistros=notamateria.rowcount
             if (notamateria.rowcount==0):
-                return ('',status.HTTP_204_NO_CONTENT)
+                raise NotFound('El recurso buscado no existe.', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
+                #return ('',status.HTTP_204_NO_CONTENT)
             elif (notamateria.rowcount==1):
                     resultadojson1=[]                  
                     for itm in notamateria:
@@ -38,17 +52,20 @@ def getNotamateriaToAlumnoIDbyNombreMateria(idalumno,argumentos):
         else:
             raise BadResquest('Nombremateria no puede ser un número.', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
     else:
-        raise BadResquest('No se encontró el parametro Nombremateria.', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
+        raise NotFound('El recurso buscado no existe.', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
     #if (argumentos.get("nombremateria")):
 
 
 #region add materia
 def addNotaMateria(request,alumnoid):
     if (not(isNumber(alumnoid))):
-        raise BadResquest('AlumnoID es un dato invalido.', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
+        raise BadResquest('AlumnoID no es un tipo de dato valido.', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
     notamateria=setNotaMateria(request,ADD_NEW,alumnoid)
     json_recibido=request.json
     nombremateria=json_recibido['nombremateria']
+    existe=nombremateria in Listamaterias
+    if (not(existe)):
+        raise BadResquest('No existe el nombre de la materia', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
     if (NotaMateria.existsNombreMateriaToAlumnoID(notamateria.alumno_fk,nombremateria)==True):
         raise Conflict('Existe una nota para esta materia.', CodeInternalError.ERROR_INTERNAL_14_REQUEST_DATA_DUPLICATED)
     else:
@@ -69,11 +86,11 @@ def addNotaMateria(request,alumnoid):
 #region get all nota s manteria by ALUMNO ID
 def getNotasMateriasByAlumnoID(alumnoid):
     if not(isNumber(alumnoid)):
-        raise BadResquest('AlumnoID es un tipo invalido', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
+        raise BadResquest('AlumnoID no es un tipo de dato valido.', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
     try:
         obj=NotaMateria.getNotasMateriasByAlumnoID(alumnoid)
     except Exception as identifier:
-        raise InternalServerError('Error relacionado con base de datos', CodeInternalError.ERROR_INTERNAL_11_CONEXION_BD)          
+        raise InternalServerError('Error relacionado con base de datos.', CodeInternalError.ERROR_INTERNAL_11_CONEXION_BD)          
     if (obj is not None and len(obj)>1):
         json_Str=jsonify([e.serializar() for e in obj]) 
         return json_Str
@@ -81,7 +98,7 @@ def getNotasMateriasByAlumnoID(alumnoid):
         for itm in obj:
             return NotaMateria.serializarManual(itm.notamateria_id,itm.alumno_fk,itm.nombremateria,itm.notafinal)
     else:
-        return '',status.HTTP_204_NO_CONTENT
+        raise NotFound('El recurso buscado no existe.', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
 #endregion
 
 #region get one notamanteriaID to an AlumnoID
@@ -125,15 +142,18 @@ def updateNotaMateria(request,alumnoid,notamateriaid):
         nombremateria=json_recibido['nombremateria']
         notafinal=request.json['notafinal']
     except Exception as identifier:
-        raise BadResquest('Estructa de Json incorrecta',CodeInternalError.ERROR_INTERNAL_10_JSON_BAD_FORMED) 
+        raise BadResquest('Estructa de Json incorrecta.',CodeInternalError.ERROR_INTERNAL_10_JSON_BAD_FORMED) 
     #se valida el nro de la nota
     if (not(isNumber(alumnoid))):
-        raise BadResquest('AlumnoID es un dato valido', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
+        raise BadResquest('AlumnoID no es un tipo de dato valido.', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
     elif (not(isNumber(notamateriaid))):
-        raise BadResquest('NotamateriaID es un tipo invalido', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
+        raise BadResquest('NotamateriaID no es un tipo de dato valido.', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
     if (not(isNumber(notafinal))):
-        raise BadResquest('Nota materia no es un dato valido', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
+        raise BadResquest('Nota final no es un tipo de dato valido.', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
     isValidNotaFinal(notafinal)
+    existe=nombremateria in Listamaterias
+    if (not(existe)):
+        raise BadResquest('No existe el nombre de la materia.', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
     #Si el objeto recibido es igual que en la base devuelve el mismo. Si no lo es, se valida que no este actualizando
     #la materia_id con un nombre de materia ya existente.
     if (NotaMateria.existsMateriaIDToAlumnoID(alumnoid,notamateriaid)):
@@ -188,9 +208,9 @@ def updateNotaMateriasByAlumnoID(id):
 #region delete notamaterias
 def deleteNotaMateria(alumnoid,notamateriaid):    
     if (not(isNumber(notamateriaid))):
-        BadResquest('NotamateriaID es un dato invalido', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
+        BadResquest('NotamateriaID no es un tipo de dato valido.', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
     if (not(isNumber(alumnoid))):
-        BadResquest('AlumnoID es un dato invalido', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
+        BadResquest('AlumnoID no es un tipo dato valido.', CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
     if (not(NotaMateria.existsMateriaIDToAlumnoID(alumnoid,notamateriaid))):
         raise NotFound('No existe la materia para el alumno asociado.', CodeInternalError.ERROR_INTERNAL_12_REQUEST_NOT_FOUND)   
     try:
@@ -206,7 +226,7 @@ def setNotaMateria(request,action,alumnoid=0):
     try:  
         request.get_json()
     except Exception as identifier:
-        raise BadResquest('Estructura de archivo invalida',CodeInternalError.ERROR_INTERNAL_10_JSON_BAD_FORMED)
+        raise BadResquest('Estructura de archivo invalida.',CodeInternalError.ERROR_INTERNAL_10_JSON_BAD_FORMED)
     isValidDataType(request)
     isValidNotaFinal(request.json['notafinal']) 
     if (action):
@@ -232,9 +252,9 @@ def setNotaMateria(request,action,alumnoid=0):
 
 def isValidDataType(request):
     if (str((request.json['nombremateria'])).isnumeric()):
-        raise BadResquest('Nombre de materia no es un tipo de dato valido',CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
+        raise BadResquest('Nombre de materia no es un tipo de dato valido.',CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
     elif (not(isNumber((request.json['notafinal'])))):
-        raise BadResquest('Nota final no es un tipo de dato valido',CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
+        raise BadResquest('Nota final no es un tipo de dato valido.',CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
 
 
 ''' Valida que sea entero'''         
@@ -258,7 +278,7 @@ def isvalidArgs(argumento):
 #region bussiness rules
 def isValidNotaFinal(notafinal):
     if (int(notafinal)>=11 or int(notafinal)<1):
-        raise BadResquest('Se requiere una nota entre 1 y 10',CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
+        raise BadResquest('Se requiere una nota entre 1 y 10.',CodeInternalError.ERROR_INTERNAL_13_REQUEST_DATA_NOT_MATCHED)
 #endregion 
 
 
